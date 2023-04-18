@@ -9,7 +9,7 @@ export const ImageGalleryItem = ({ images }) => {
     setLargeImageUrl(imgUrl);
     setIsShownModal(true);
   }
-  return images.map(img => (<GalleryItem key={img.id} onClick={()=>openModal(img.largeImageURL)}><ItemImg src={img.webformatURL} alt="" /></GalleryItem>));
+  return images.length ? images.map(img => (<GalleryItem key={img.id} onClick={() => openModal(img.largeImageURL)}><ItemImg src={img.webformatURL} alt="" /></GalleryItem>)) : null;
 };
 
 ImageGalleryItem.propTypes = {

@@ -20,26 +20,28 @@ export const App = () => {
 
   useEffect(() => {
     const getImages = async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchImages(searchQuery, page);
-      if (data.hits.length === 0) {
-        Notify.failure('No images found');
-      } else {
-        setImages(data.hits);
-        setPage(p => p + 1);
-        setTotalHits(data.totalHits);
+      setIsLoading(true);
+      try {
+        const data = await fetchImages(searchQuery, page);
+        if (data.hits.length === 0) {
+          Notify.failure('No images found');
+        } else {
+          setImages(data.hits);
+          setPage(p => p + 1);
+          setTotalHits(data.totalHits);
+        }
+      } catch (error) {
+        setSearchError(
+          `Oops, something went wrong. ${error}. Try again later.`
+        );
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      setSearchError(error);
-      console.log(searchError);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
     if (searchQuery) {
       getImages();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   const loadMoreImg = async () => {
@@ -49,8 +51,7 @@ export const App = () => {
       setImages([...images, ...data.hits]);
       setPage(page + 1);
     } catch (error) {
-      setSearchError(error);
-      console.log(searchError);
+      setSearchError(`Oops, something went wrong:${error}. Try again later.`);
     } finally {
       setIsLoading(false);
     }
@@ -73,18 +74,16 @@ export const App = () => {
     <Wrapper>
       <SearchBar onSubmit={searchFormSubmit}></SearchBar>
       <ModalContext>
-      <div>
-        {isLoading && <Loader />}
-        <ImageGallery>
-          {images.length > 0 ? (
+        <div>
+          {isLoading && <Loader />}
+          {searchError ? searchError : (<ImageGallery>
             <ImageGalleryItem images={images} />
-          ) : null}
-        </ImageGallery>
-      </div>
-      {images.length > 0 && images.length < totalHits ? (
-        <Button onClick={loadMoreImg}></Button>
-      ) : null}
-      <Modal/>
+          </ImageGallery>)}
+        </div>
+        {images.length > 0 && images.length < totalHits ? (
+          <Button onClick={loadMoreImg}></Button>
+        ) : null}
+        <Modal />
       </ModalContext>
     </Wrapper>
   );
