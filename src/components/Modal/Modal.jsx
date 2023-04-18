@@ -1,39 +1,33 @@
-import { Component } from 'react';
+import { useEffect } from 'react';
+import { useCustomContext } from 'context/Context';
 import { ModalOverlay, StyledModal, ModalImg } from './Modal.styled';
-import PropTypes from 'prop-types'
 
-export class Modal extends Component {
-  state = {
-
-  };
-  componentDidMount() {
-    window.addEventListener("keydown", this.handlPressEsc);
-  };
-  componentWillUnmount() {
-    window.removeEventListener("keydown", this.handlPressEsc)
-  };
-  handlPressEsc = (e) => {
+export const Modal = () => {
+  const { largeImageUrl, isShownModal, setLargeImageUrl, setIsShownModal } = useCustomContext();
+  const handlPressEsc = (e) => {
     if (e.code === "Escape") {
-      this.props.hideModal()
+      setIsShownModal(false);
+      setLargeImageUrl('');
     }
   };
-  handleClick = (e) => {
+  const handleClick = (e) => {
     if (e.currentTarget === e.target) {
-      this.props.hideModal();
+      setIsShownModal(false);
+      setLargeImageUrl('');
     }
-  }
-  render() {
-    return (
-    <ModalOverlay onClick={this.handleClick}>
+  };
+  useEffect(() => {
+    window.addEventListener("keydown", handlPressEsc);
+  
+    return () => {
+      window.removeEventListener("keydown", handlPressEsc)
+    }
+  }, []);
+  return (
+    isShownModal && <ModalOverlay onClick={handleClick}>
     <StyledModal>
-      <ModalImg src={this.props.imgUrl} alt="" />
-    </StyledModal>
-  </ModalOverlay>
+      <ModalImg src={largeImageUrl} alt="" />
+      </StyledModal>
+    </ModalOverlay >
     )
-  }
-}
-
-Modal.propTypes = {
-  imgUrl: PropTypes.string.isRequired,
-  hideModal: PropTypes.func.isRequired
 }

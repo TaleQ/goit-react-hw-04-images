@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { Wrapper } from './Wrapper/Wrapper.styled';
 import { SearchBar } from './SearchBar/SearchBar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
@@ -8,99 +8,84 @@ import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
 import { fetchImages } from 'api/Api';
 import { Notify } from 'notiflix';
+import { ModalContext } from 'context/Context';
 
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [totalHits, setTotalHits] = useState('');
 
-export class App extends Component {
-  state = {
-    images: [],
-    searchQuery: '',
-    page: 1,
-    isLoading: false,
-    error: null,
-    isShowModal: false,
-    largeImageUrl: "",
-    totalHits: ""
-  };
-  async componentDidUpdate(_, prevState) {
-    const { searchQuery, page } = this.state;
-    if (prevState.searchQuery !== searchQuery) {
-      this.setState({
-        isLoading: true,
-      });
-      try {
-        const data = await fetchImages(searchQuery, page);
-        if (data.hits.length === 0) {
-          Notify.failure("No images found")
-        } else {
-          this.setState(prevState => ({
-          images: data.hits,
-          page: prevState.page + 1,
-          totalHits: data.totalHits
-        }));
-        }
-      } catch (error) {
-        this.setState({ error: error });
-      } finally {
-        this.setState({ isLoading: false });
-      }
-    }
-  };
-  async loadMoreImg() {
-    this.setState({
-        isLoading: true,
-      });
+  useEffect(() => {
+    const getImages = async () => {
+    setIsLoading(true);
     try {
-        const { searchQuery, page } = this.state;
       const data = await fetchImages(searchQuery, page);
-      this.setState(prevState => ({
-          images: [...prevState.images, ...data.hits],
-          page: prevState.page + 1,
-        }));
-      } catch (error) {
-        this.setState({ error: error });
-      } finally {
-        this.setState({ isLoading: false });
+      if (data.hits.length === 0) {
+        Notify.failure('No images found');
+      } else {
+        setImages(data.hits);
+        setPage(p => p + 1);
+        setTotalHits(data.totalHits);
       }
-  };
-  searchFormSubmit = value => {
-    if (value === this.state.searchQuery) {
-      Notify.info(`Results for query "${value}" are already shown. Press "Load more" to see more images`)
-      return
+    } catch (error) {
+      setSearchError(error);
+      console.log(searchError);
+    } finally {
+      setIsLoading(false);
     }
-    this.setState({
-      images: [],
-      searchQuery: value,
-      page: 1,
-    });
   };
-  openModal = largeImageUrl => {
-    this.setState({
-      largeImageUrl: largeImageUrl,
-      isShowModal: true
-    });
+    if (searchQuery) {
+      getImages();
+    }
+  }, [searchQuery]);
+
+  const loadMoreImg = async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchImages(searchQuery, page);
+      setImages([...images, ...data.hits]);
+      setPage(page + 1);
+    } catch (error) {
+      setSearchError(error);
+      console.log(searchError);
+    } finally {
+      setIsLoading(false);
+    }
   };
-  hideModal = () => {
-    this.setState({
-      largeImageUrl: "",
-      isShowModal: false
-    });
-  }
-  render() {
-    const { images, isLoading, isShowModal, largeImageUrl, totalHits } = this.state;
-    return (
-      <Wrapper>
-        <SearchBar onSubmit={this.searchFormSubmit}></SearchBar>
-        <div>
-          {isLoading && <Loader />}
-          <ImageGallery>
-            {images.length > 0 ? (
-              <ImageGalleryItem images={images} onClick={this.openModal} />
-            ) : null}
-          </ImageGallery>
-        </div>
-        {images.length > 0 && images.length < totalHits ? (<Button onClick={this.loadMoreImg.bind(this)}></Button>) : null}
-        {isShowModal && <Modal imgUrl={largeImageUrl} hideModal={this.hideModal} />}
-      </Wrapper>
-    );
-  }
-}
+
+  const searchFormSubmit = newSearchQuery => {
+    if (newSearchQuery === searchQuery) {
+      Notify.info(
+        `Results for query "${newSearchQuery}" are already shown. Press "Load more" to see more images`
+      );
+      return;
+    } else {
+      setImages([]);
+      setSearchQuery(newSearchQuery);
+      setPage(1);
+    }
+  };
+
+  return (
+    <Wrapper>
+      <SearchBar onSubmit={searchFormSubmit}></SearchBar>
+      <ModalContext>
+      <div>
+        {isLoading && <Loader />}
+        <ImageGallery>
+          {images.length > 0 ? (
+            <ImageGalleryItem images={images} />
+          ) : null}
+        </ImageGallery>
+      </div>
+      {images.length > 0 && images.length < totalHits ? (
+        <Button onClick={loadMoreImg}></Button>
+      ) : null}
+      <Modal/>
+      </ModalContext>
+    </Wrapper>
+  );
+};
